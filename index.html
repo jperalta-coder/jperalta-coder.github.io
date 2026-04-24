@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>One Arts Plaza — Daily Operations Report</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --navy:#1c2d3f;--navy-mid:#243649;--navy-light:#2e4560;
+  --gold:#e8a020;--gold-light:#f5c060;
+  --cream:#f6f4f0;--white:#fff;
+  --border:#ddd8d0;--border-light:#edeae4;
+  --text:#1a1a1a;--text-mid:#444;--text-muted:#888;
+  --red:#b83030;--red-bg:#fdf0f0;--red-border:#e8c0c0;
+  --green:#256840;--green-bg:#f0f8f3;--green-border:#a8d8b8;
+  --amber:#a06010;--amber-bg:#fdf5ea;--amber-border:#e8c898;
+  --info:#1e4a78;--info-bg:#eef4fb;--info-border:#b0cce8;
+  --sec:#263826;--sec-border:#3a5a3a;--sec-text:#b8e090;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--cream);color:var(--text);font-size:16px;padding-bottom:60px}
+
+/* Save banner */
+.save-banner{position:sticky;top:0;z-index:200;background:#1a3028;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.save-banner.unsaved{background:#3a2a10}
+.save-banner.saving{background:#1a2a3a}
+.save-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.save-left{display:flex;align-items:center;gap:8px}
+.save-dot{width:8px;height:8px;border-radius:50%;background:#6fcf97;flex-shrink:0;transition:background .3s}
+.save-dot.unsaved{background:var(--gold);animation:pulse 1.5s infinite}
+.save-dot.saving{background:#7ab8f5;animation:pulse .6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes flashGreen{0%{background:#1e5a38}60%{background:#1e5a38}100%{background:#1a3028}}
+.save-banner.flash{animation:flashGreen 1.2s ease}
+.save-main-label{font-size:13px;font-weight:700;color:#b8e090}
+.save-banner.unsaved .save-main-label{color:var(--gold-light)}
+.save-banner.saving .save-main-label{color:#7ab8f5}
+.save-time{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.save-right{display:flex;align-items:center;gap:8px}
+.save-copy-btn{font-size:11px;font-weight:600;color:rgba(255,255,255,.5);padding:5px 10px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:transparent;cursor:pointer;white-space:nowrap}
+.save-copy-btn:active{background:rgba(255,255,255,.08)}
+.clear-btn{font-size:11px;font-weight:600;color:rgba(255,255,255,.3);padding:5px 10px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:transparent;cursor:pointer}
+.clear-btn:active{background:rgba(255,255,255,.06)}
+/* Status pills row */
+.save-pills{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.pill{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid;display:flex;align-items:center;gap:4px}
+.pill-offline{background:rgba(184,48,48,.15);color:#f08080;border-color:rgba(184,48,48,.3);display:none}
+.pill-offline.show{display:flex}
+.pill-battery{background:rgba(184,48,48,.15);color:#f08080;border-color:rgba(184,48,48,.3);display:none}
+.pill-battery.show{display:flex}
+.pill-install{background:rgba(30,74,120,.2);color:#7ab8f5;border-color:rgba(30,74,120,.35);display:none;cursor:pointer}
+.pill-install.show{display:flex}
+.pill-restore{background:rgba(160,96,16,.2);color:var(--gold-light);border-color:rgba(160,96,16,.35);display:none;cursor:pointer}
+.pill-restore.show{display:flex}
+/* Copy toast */
+.copy-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1c2d3f;color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s;z-index:999;white-space:nowrap}
+.copy-toast.show{opacity:1}
+
+/* Header */
+.hdr{background:var(--navy);padding:16px 16px 14px}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.hdr-brand{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.hdr-clock{color:rgba(255,255,255,.3);font-size:12px}
+.hdr-title{color:#fff;font-size:19px;font-weight:700;margin-bottom:2px}
+.hdr-sub{color:rgba(255,255,255,.4);font-size:12px;margin-bottom:14px}
+.hdr-fields{display:flex;gap:8px;margin-bottom:8px}
+.hf{flex:1}
+.hf label{display:block;font-size:10px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.hf input{width:100%;font-size:15px;padding:9px 11px;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.07);color:#fff;outline:none}
+.hf input:focus{border-color:rgba(232,160,32,.45)}
+.hf input::placeholder{color:rgba(255,255,255,.25)}
+.shift-val{font-size:13px;color:rgba(255,255,255,.4);padding:9px 11px;border:1.5px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(255,255,255,.04)}
+
+/* Tags */
+.tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:none;letter-spacing:0;border:1px solid}
+.tag-red{background:var(--red-bg);color:var(--red);border-color:var(--red-border)}
+.tag-info{background:var(--info-bg);color:var(--info);border-color:var(--info-border)}
+.tag-amber{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-border)}
+.tag-green{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.tag-sec{background:rgba(143,190,104,.12);color:#5a9040;border-color:rgba(143,190,104,.35)}
+
+/* Section */
+.section{margin:14px 14px 0}
+.section-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+
+/* Card */
+.card{background:var(--white);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+
+/* Security check-in */
+.sec-checkin-card{background:var(--sec);border:1.5px solid var(--sec-border);border-radius:14px;overflow:hidden}
+.sec-checkin-hdr{background:rgba(0,0,0,.25);padding:11px 14px;border-bottom:1px solid var(--sec-border);display:flex;align-items:center;justify-content:space-between}
+.sec-checkin-title{color:var(--sec-text);font-size:14px;font-weight:700}
+.sec-checkin-sub{color:rgba(255,255,255,.35);font-size:11px;margin-top:1px}
+.sec-time-badge{background:rgba(143,190,104,.15);border:1px solid rgba(143,190,104,.3);border-radius:8px;padding:4px 9px;color:var(--sec-text);font-size:12px;font-weight:700}
+.sec-inline-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 14px}
+.sif label{display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.sif input{width:100%;font-size:14px;font-weight:500;padding:9px 11px;border:1.5px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);-webkit-appearance:none;outline:none}
+.sif input::placeholder{color:rgba(255,255,255,.2)}
+.sif input:focus{border-color:rgba(143,190,104,.4)}
+.sec-confirm-btn{margin:0 14px 14px;width:calc(100% - 28px);padding:12px;background:rgba(37,104,64,.35);border:1.5px solid rgba(143,190,104,.3);border-radius:10px;color:var(--sec-text);font-size:14px;font-weight:700;cursor:pointer;text-align:center}
+.sec-confirm-btn:active{transform:scale(.98)}
+.sec-confirm-btn.confirmed{background:rgba(37,104,64,.55);border-color:rgba(143,190,104,.6)}
+.sec-stamp{margin:0 14px 14px;padding:10px 13px;border-radius:10px;font-size:12px;text-align:center;font-weight:500;display:none}
+.sec-stamp.show{display:block;color:var(--sec-text);background:rgba(37,104,64,.2);border:1.5px solid rgba(143,190,104,.3)}
+
+/* Status rows */
+.srow{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border-light)}
+.srow:last-child{border-bottom:none}
+.srow-label{font-size:15px;color:var(--text);font-weight:500}
+.ssel{font-size:14px;font-weight:600;padding:7px 11px;border:1.5px solid var(--border);border-radius:9px;background:var(--white);color:var(--text-mid);min-width:118px;-webkit-appearance:none;appearance:none;cursor:pointer;text-align:center;outline:none}
+.ssel.ok{border-color:var(--green-border);color:var(--green);background:var(--green-bg)}
+.ssel.warn{border-color:var(--amber-border);color:var(--amber);background:var(--amber-bg)}
+.ssel.bad{border-color:var(--red-border);color:var(--red);background:var(--red-bg)}
+
+/* Lane 8280 */
+.lane-card{background:var(--navy);border:1px solid var(--navy-light);border-radius:14px;overflow:hidden}
+.lane-hdr{background:var(--navy-mid);padding:11px 14px;border-bottom:1px solid var(--navy-light)}
+.lane-hdr-title{color:var(--gold-light);font-size:13px;font-weight:700}
+.lane-hdr-sub{color:rgba(255,255,255,.35);font-size:11px;margin-top:2px}
+.lane-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:11px 11px 4px}
+.lane-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 8px;text-align:center}
+.lane-num{color:var(--gold-light);font-size:13px;font-weight:700;margin-bottom:2px}
+.lane-time{color:rgba(255,255,255,.4);font-size:11px;margin-bottom:7px}
+.lane-sel{width:100%;font-size:13px;font-weight:600;padding:6px 7px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);-webkit-appearance:none;appearance:none;cursor:pointer;outline:none;text-align:center}
+.lane-sel.ok-sel{border-color:var(--green-border);color:#7fcf9f;background:rgba(37,104,64,.25)}
+.lane-sel.warn-sel{border-color:var(--amber-border);color:var(--gold-light);background:rgba(160,96,16,.25)}
+.lane-note-strip{padding:4px 11px 11px}
+.lane-note-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.lane-ta{width:100%;font-size:14px;padding:9px 11px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);min-height:65px;resize:none;line-height:1.5;outline:none}
+.lane-ta::placeholder{color:rgba(255,255,255,.2)}
+
+/* Location accordion */
+.loc-block{border-bottom:1px solid var(--border-light)}
+.loc-block:last-child{border-bottom:none}
+.loc-hdr{padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.loc-hdr:active{background:var(--cream)}
+.loc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.loc-name{font-size:14px;font-weight:700;color:var(--text);flex:1}
+.loc-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+.loc-arrow{font-size:16px;color:var(--text-muted);transition:transform .2s}
+.loc-arrow.open{transform:rotate(90deg)}
+.loc-body{display:none;padding:2px 14px 14px}
+.loc-body.open{display:block}
+.check-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.ci{display:flex;align-items:center;gap:11px;padding:11px 10px;border-radius:9px;cursor:pointer;border:1.5px solid var(--border-light);background:var(--cream);-webkit-user-select:none;user-select:none;transition:all .1s}
+.ci:active{transform:scale(.98)}
+.ci.done{background:var(--green-bg);border-color:var(--green-border)}
+.ci.warn{background:var(--amber-bg);border-color:var(--amber-border)}
+.ci.warn.done{background:var(--green-bg);border-color:var(--green-border)}
+.ci-box{width:23px;height:23px;border:2px solid #ccc;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--white)}
+.ci.done .ci-box{background:var(--green);border-color:var(--green)}
+.ci.warn .ci-box{border-color:var(--amber)}
+.ci.warn.done .ci-box{background:var(--green);border-color:var(--green)}
+.ci-tick{display:none;width:11px;height:7px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translateY(-1px)}
+.ci.done .ci-tick{display:block}
+.ci-text{font-size:14px;color:var(--text-mid);flex:1;line-height:1.35}
+.ci.done .ci-text{color:var(--green)}
+.ci-dot{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0}
+.loc-notes-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.loc-ta{width:100%;font-size:14px;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;background:var(--white);color:var(--text);resize:none;min-height:68px;line-height:1.5;outline:none}
+.loc-ta:focus{border-color:var(--navy)}
+
+/* Midday */
+.midday-card{background:var(--sec);border:1.5px solid var(--sec-border);border-radius:14px;overflow:hidden}
+.midday-hdr{background:rgba(0,0,0,.2);padding:10px 14px;border-bottom:1px solid var(--sec-border);display:flex;align-items:center;justify-content:space-between}
+.midday-title{color:var(--sec-text);font-size:13px;font-weight:700}
+.midday-sub{color:rgba(255,255,255,.35);font-size:11px;margin-top:1px}
+.midday-body{padding:12px 14px}
+.midday-note{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:10px;line-height:1.4;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid rgba(255,255,255,.07)}
+
+/* Fields */
+.field{padding:12px 14px;border-bottom:1px solid var(--border-light)}
+.field:last-child{border-bottom:none}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;font-size:15px;font-weight:400;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;background:var(--white);color:var(--text);-webkit-appearance:none;appearance:none;outline:none;line-height:1.5}
+.field input:focus,.field textarea:focus{border-color:var(--navy)}
+.field textarea{resize:none;min-height:80px}
+.field select{font-size:15px;font-weight:500}
+.field-2col{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border-light)}
+.field-2col .field{border-bottom:none;border-right:1px solid var(--border-light)}
+.field-2col .field:last-child{border-right:none}
+
+/* Drive */
+.drive-block{padding:12px 14px;border-bottom:1px solid var(--border-light)}
+.drive-block:last-child{border-bottom:none}
+.drive-hint{font-size:12px;color:var(--info);margin-bottom:8px;line-height:1.4;padding:8px 10px;background:var(--info-bg);border:1px solid var(--info-border);border-radius:8px}
+.drive-hint strong{font-weight:700}
+.drive-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.drive-input{width:100%;font-size:14px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;background:var(--white);color:var(--text);outline:none}
+.drive-input:focus{border-color:var(--navy)}
+
+/* Sign-off blocks (name + badge only, no canvas) */
+.signoff-card{border-radius:14px;overflow:hidden;border:1.5px solid}
+.signoff-card.green{background:var(--sec);border-color:var(--sec-border)}
+.signoff-hdr{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between}
+.signoff-hdr.green{background:rgba(0,0,0,.2)}
+.signoff-title{color:var(--sec-text);font-size:13px;font-weight:700}
+.signoff-sub{color:rgba(255,255,255,.35);font-size:11px;margin-top:1px}
+.signoff-body{padding:12px 14px}
+.signoff-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.signoff-row label{display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.signoff-row input{width:100%;font-size:14px;font-weight:500;padding:9px 11px;border:1.5px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.85);outline:none}
+.signoff-row input::placeholder{color:rgba(255,255,255,.2)}
+.signoff-row input:focus{border-color:rgba(143,190,104,.4)}
+.signoff-notes-wrap{margin-bottom:10px}
+.signoff-notes-wrap label{display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.signoff-notes-wrap textarea{width:100%;font-size:14px;padding:9px 11px;border:1.5px solid rgba(255,255,255,.1);border-radius:9px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.8);resize:none;min-height:70px;line-height:1.5;outline:none}
+.signoff-notes-wrap textarea::placeholder{color:rgba(255,255,255,.2)}
+.signoff-btn{width:100%;padding:12px;background:rgba(37,104,64,.35);border:1.5px solid rgba(143,190,104,.3);border-radius:10px;color:var(--sec-text);font-size:14px;font-weight:700;cursor:pointer;text-align:center}
+.signoff-btn:active{transform:scale(.98)}
+.signoff-btn.confirmed{background:rgba(37,104,64,.55);border-color:rgba(143,190,104,.6)}
+.signoff-stamp{margin-top:8px;padding:10px 13px;border-radius:10px;font-size:12px;text-align:center;font-weight:500;display:none}
+.signoff-stamp.show{display:block;color:var(--sec-text);background:rgba(37,104,64,.2);border:1.5px solid rgba(143,190,104,.3)}
+
+/* Readiness */
+.readiness{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:14px 14px 0}
+.ri{background:var(--white);border-radius:10px;padding:9px 6px;text-align:center;border:1.5px solid var(--border)}
+.ri.ok{border-color:var(--green-border);background:var(--green-bg)}
+.ri.no{border-color:var(--red-border);background:var(--red-bg)}
+.ri-label{font-size:9px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.ri-val{font-size:11px;font-weight:700;color:var(--text)}
+.ri.ok .ri-val{color:var(--green)}
+.ri.no .ri-val{color:var(--red)}
+
+/* Submit */
+.submit-wrap{margin:14px 14px 0}
+.submit-btn{width:100%;padding:16px;background:var(--navy);color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:700;cursor:pointer}
+.submit-btn:active{transform:scale(.98)}
+.submit-btn.submitted{background:var(--green)}
+.footer{margin-top:18px;text-align:center;font-size:11px;color:var(--text-muted);padding:0 14px}
+</style>
+</head>
+<body>
+
+<!-- Save banner -->
+<div class="save-banner" id="save-banner">
+  <div class="save-top">
+    <div class="save-left">
+      <div class="save-dot" id="save-dot"></div>
+      <div>
+        <div class="save-main-label" id="save-main-label">Progress saved</div>
+        <div class="save-time" id="save-time">—</div>
+      </div>
+    </div>
+    <div class="save-right">
+      <button class="save-copy-btn" onclick="copyProgress()">Copy backup</button>
+      <button class="clear-btn" onclick="clearSavedData()">New day</button>
+    </div>
+  </div>
+  <div class="save-pills">
+    <div class="pill pill-offline" id="pill-offline">⚡ No internet — submit when online</div>
+    <div class="pill pill-battery" id="pill-battery">🔋 Low battery — submit or copy backup now</div>
+    <div class="pill pill-restore" id="pill-restore" onclick="restoreBackup()">↩ Backup available — tap to restore</div>
+    <div class="pill pill-install" id="pill-install" onclick="installPrompt()">📲 Add to home screen for best experience</div>
+  </div>
+</div>
+<div class="copy-toast" id="copy-toast">Progress copied to clipboard ✓</div>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="hdr-brand">Vend × Spark Services</div>
+    <div class="hdr-clock" id="live-clock"></div>
+  </div>
+  <div class="hdr-title">Daily Operations Report</div>
+  <div class="hdr-sub">One Arts Plaza &nbsp;·&nbsp; End of Shift Submission</div>
+  <div class="hdr-fields">
+    <div class="hf">
+      <label>Spark Attendant</label>
+      <input type="text" id="att-name" placeholder="Full name" autocomplete="name">
+    </div>
+    <div class="hf" style="max-width:140px">
+      <label>Date</label>
+      <input type="date" id="att-date">
+    </div>
+  </div>
+  <div class="hf">
+    <label>Shift</label>
+    <div class="shift-val">Mon–Fri &nbsp;·&nbsp; 9:00 AM – 5:00 PM Central</div>
+  </div>
+</div>
+
+<form id="main-form" onsubmit="handleSubmit(event)">
+<input type="hidden" name="form-name" value="one-arts-daily">
+<input type="hidden" name="bot-trap" style="display:none">
+<input type="hidden" name="attendant_name" id="f-name">
+<input type="hidden" name="report_date" id="f-date">
+<input type="hidden" name="sec_checkin" id="f-checkin" value="Not completed">
+<input type="hidden" name="sec_block1" id="f-block1" value="Not completed">
+<input type="hidden" name="sec_block2" id="f-block2" value="Not completed">
+<input type="hidden" name="sec_block3" id="f-block3" value="Not completed">
+<input type="hidden" name="sec_checkout" id="f-checkout" value="Not completed">
+<input type="hidden" name="lane_check_1" id="f-l1">
+
+<!-- ═══ SECURITY CHECK-IN (start of day) ═══ -->
+<div class="section">
+  <div class="section-label">Security check-in <span class="tag tag-sec">Start of shift · 9 AM</span></div>
+  <div class="signoff-card green">
+    <div class="signoff-hdr green">
+      <div><div class="signoff-title">Attendant on property — confirmed</div><div class="signoff-sub">Security officer logs attendant arrival at start of shift</div></div>
+      <div class="sec-time-badge" id="checkin-time-badge">9:00 AM</div>
+    </div>
+    <div class="signoff-body">
+      <div class="signoff-row">
+        <div><label>Officer name</label><input type="text" id="ci-officer" placeholder="Full name"></div>
+        <div><label>Designation</label><input type="text" id="ci-badge" placeholder="e.g. Security Officer"></div>
+      </div>
+      <div class="signoff-row">
+        <div><label>Time confirmed</label><input type="time" id="ci-time"></div>
+        <div><label>Post / station</label><input type="text" id="ci-post" placeholder="e.g. Lobby"></div>
+      </div>
+      <button type="button" class="signoff-btn" id="ci-btn" onclick="confirmBlock('ci')">Confirm check-in</button>
+      <div class="signoff-stamp" id="ci-stamp"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ OVERALL STATUS ═══ -->
+<div class="section">
+  <div class="section-label">Overall shift status <span class="tag tag-info">Quick select</span></div>
+  <div class="card">
+    <div class="srow"><span class="srow-label">Operations</span><select class="ssel" id="sel-ops" name="status_operations" onchange="styleSelect(this);autoSave()"><option>Smooth</option><option>Minor issues</option><option>Major issues</option></select></div>
+    <div class="srow"><span class="srow-label">Cleanliness</span><select class="ssel" id="sel-clean" name="status_cleanliness" onchange="styleSelect(this);autoSave()"><option>Maintained</option><option>Needs attention</option><option>Poor</option></select></div>
+    <div class="srow"><span class="srow-label">Enforcement</span><select class="ssel" id="sel-enforce" name="status_enforcement" onchange="styleSelect(this);autoSave()"><option>Low</option><option>Moderate</option><option>High</option></select></div>
+  </div>
+</div>
+
+<!-- ═══ LANE 8280 — 1 check only ═══ -->
+<div class="section">
+  <div class="section-label">Lane 8280 — Basement Garage <span class="tag tag-red">Morning check only</span></div>
+  <div class="lane-card">
+    <div class="lane-hdr">
+      <div class="lane-hdr-title">RFID · Gate · Callbox — start of shift</div>
+      <div class="lane-hdr-sub">Restricted executive lane · 1 check · AM only</div>
+    </div>
+    <div style="padding:11px">
+      <div class="lane-item" style="max-width:200px;margin:0 auto">
+        <div class="lane-num">Morning check</div>
+        <div class="lane-time">9:00 AM</div>
+        <select class="lane-sel" id="lc1" name="lane_check_1" onchange="styleLane(this);autoSave()">
+          <option value="">Status</option><option>All OK</option><option>Fault — reported</option><option>Fault — resolved</option>
+        </select>
+      </div>
+    </div>
+    <div class="lane-note-strip">
+      <div class="lane-note-label">Notes</div>
+      <textarea class="lane-ta" id="lane-notes" name="lane_notes" placeholder="RFID faults, gate issues, callbox problems, exec incidents..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BLOCK 1 — LOCATION REPORTS + SECURITY SIGN-OFF ═══ -->
+<div class="section">
+  <div class="section-label">Block 1 — Morning round <span class="tag tag-info">9:00–10:30 AM</span></div>
+  <div class="card">
+    <!-- BASEMENT -->
+    <div class="loc-block">
+      <div class="loc-hdr" onclick="toggleLoc('basement')">
+        <div class="loc-dot" style="background:#c0392b"></div>
+        <div style="flex:1"><div class="loc-name">Basement Garage</div><div class="loc-sub">Executive only · RFID + callbox · Restricted</div></div>
+        <div class="loc-arrow" id="arr-basement">›</div>
+      </div>
+      <div class="loc-body" id="loc-basement">
+        <div class="check-list">
+          <div class="ci" data-id="bsmt-0" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Physical lanes intact — no obstructions or safety concerns</span></div>
+          <div class="ci" data-id="bsmt-1" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Gate &amp; kiosk surfaces wiped down</span></div>
+          <div class="ci" data-id="bsmt-2" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Trash &amp; debris cleared from accessible areas</span></div>
+          <div class="ci" data-id="bsmt-3" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">LPR + security cameras — unobstructed, no issues observed</span></div>
+          <div class="ci warn" data-id="bsmt-4" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">No unauthorised vehicles or occupants in accessible areas</span></div>
+        </div>
+        <div class="loc-notes-label">Notes</div>
+        <textarea class="loc-ta" id="notes-basement" name="notes_basement" placeholder="Observations, anything out of the ordinary..."></textarea>
+      </div>
+    </div>
+    <!-- MAIN GARAGE -->
+    <div class="loc-block">
+      <div class="loc-hdr" onclick="toggleLoc('main')">
+        <div class="loc-dot" style="background:#2980b9"></div>
+        <div style="flex:1"><div class="loc-name">Main Garage</div><div class="loc-sub">2 entries · 2 exits · Nested tenant section · Reserved spaces</div></div>
+        <div class="loc-arrow" id="arr-main">›</div>
+      </div>
+      <div class="loc-body" id="loc-main">
+        <div class="check-list">
+          <div class="ci" data-id="main-1" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">All entry/exit lanes physically cleared &amp; portered</span></div>
+          <div class="ci" data-id="main-1b" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Physical lanes intact — no obstructions or safety concerns</span></div>
+          <div class="ci" data-id="main-2" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">All gates operational</span></div>
+          <div class="ci" data-id="main-3" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Kiosks cleaned + working</span></div>
+          <div class="ci" data-id="main-4" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Trash + human debris cleared — all floors</span></div>
+          <div class="ci warn" data-id="main-5" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">Reserved spaces enforced — violations tagged &amp; documented</span></div>
+          <div class="ci warn" data-id="main-6" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">Nested tenant section — monthly pass verified</span></div>
+          <div class="ci warn" data-id="main-7" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">Nesting / loitering checked — actioned if found</span></div>
+          <div class="ci" data-id="main-8" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">LPR + security cameras — unobstructed, no issues observed</span></div>
+        </div>
+        <div class="loc-notes-label">Notes</div>
+        <textarea class="loc-ta" id="notes-main" name="notes_main_garage" placeholder="Violations, debris level, lane conditions, incidents..."></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCK 1 SECURITY SIGN-OFF -->
+<div class="section">
+  <div class="section-label">Block 1 security sign-off <span class="tag tag-sec">After morning round</span></div>
+  <div class="signoff-card green">
+    <div class="signoff-hdr green">
+      <div><div class="signoff-title">Morning round verified</div><div class="signoff-sub">Security confirms Block 1 tasks completed</div></div>
+    </div>
+    <div class="signoff-body">
+      <div class="signoff-row">
+        <div><label>Officer name</label><input type="text" id="b1-officer" placeholder="Full name"></div>
+        <div><label>Designation</label><input type="text" id="b1-badge" placeholder="e.g. Security Officer"></div>
+      </div>
+      <div class="signoff-row">
+        <div><label>Time</label><input type="time" id="b1-time"></div>
+        <div><label>Post / station</label><input type="text" id="b1-post" placeholder="e.g. Lobby"></div>
+      </div>
+      <button type="button" class="signoff-btn" id="b1-btn" onclick="confirmBlock('b1')">Confirm Block 1 sign-off</button>
+      <div class="signoff-stamp" id="b1-stamp"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BLOCK 2 — MIDDAY ROUND + SECURITY SIGN-OFF ═══ -->
+<div class="section">
+  <div class="section-label">Block 2 — Midday round <span class="tag tag-info">10:30 AM–12:00 PM</span></div>
+  <div class="card">
+    <!-- SURFACE LOT -->
+    <div class="loc-block">
+      <div class="loc-hdr" onclick="toggleLoc('surface')">
+        <div class="loc-dot" style="background:#27ae60"></div>
+        <div style="flex:1"><div class="loc-name">Surface Lot</div><div class="loc-sub">Restricted lane · Tenants + property team · Pass or badge required</div></div>
+        <div class="loc-arrow" id="arr-surface">›</div>
+      </div>
+      <div class="loc-body" id="loc-surface">
+        <div class="check-list">
+          <div class="ci" data-id="surf-0" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Access badge working per badge usage log in Vend Portal</span></div>
+          <div class="ci" data-id="surf-1" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Kiosks operational — surfaces wiped, no faults</span></div>
+          <div class="ci" data-id="surf-2" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Entry/exit lanes clear — no obstruction or backup observed</span></div>
+          <div class="ci" data-id="surf-3" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Trash &amp; debris cleared — lot and entry points</span></div>
+          <div class="ci warn" data-id="surf-4" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">Nesting / unattended belongings — checked &amp; cleared</span></div>
+          <div class="ci" data-id="surf-5" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">LPR + security cameras — unobstructed, no issues observed</span></div>
+        </div>
+        <div class="loc-notes-label">Notes</div>
+        <textarea class="loc-ta" id="notes-surface" name="notes_surface_lot" placeholder="Access issues, badge log discrepancies, cleanliness, incidents..."></textarea>
+      </div>
+    </div>
+    <!-- NORTH LOT -->
+    <div class="loc-block">
+      <div class="loc-hdr" onclick="toggleLoc('north')">
+        <div class="loc-dot" style="background:#888"></div>
+        <div style="flex:1"><div class="loc-name">North Lot</div><div class="loc-sub">No physical lanes · Free in/out · Speed bumps · Park &amp; Pay</div></div>
+        <div class="loc-arrow" id="arr-north">›</div>
+      </div>
+      <div class="loc-body" id="loc-north">
+        <div class="check-list">
+          <div class="ci" data-id="north-1" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Full lot walked — no issues found, note if otherwise</span></div>
+          <div class="ci" data-id="north-2" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Park &amp; Pay signs intact + visible</span></div>
+          <div class="ci" data-id="north-3" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Speed bumps intact — note if otherwise or operator assistance needed</span></div>
+          <div class="ci warn" data-id="north-4" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">No unauthorised occupants, unattended belongings, or loitering</span></div>
+          <div class="ci" data-id="north-5" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">LPR + security cameras — unobstructed, no issues observed</span></div>
+        </div>
+        <div class="loc-notes-label">Notes</div>
+        <textarea class="loc-ta" id="notes-north" name="notes_north_lot" placeholder="Violations, loitering, cleanliness, speed bump status, anything unusual..."></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCK 2 SECURITY SIGN-OFF -->
+<div class="section">
+  <div class="section-label">Block 2 security sign-off <span class="tag tag-sec">After midday round</span></div>
+  <div class="signoff-card green">
+    <div class="signoff-hdr green">
+      <div><div class="signoff-title">Midday round verified</div><div class="signoff-sub">Security confirms Block 2 tasks completed</div></div>
+    </div>
+    <div class="signoff-body">
+      <div class="signoff-row">
+        <div><label>Officer name</label><input type="text" id="b2-officer" placeholder="Full name"></div>
+        <div><label>Designation</label><input type="text" id="b2-badge" placeholder="e.g. Security Officer"></div>
+      </div>
+      <div class="signoff-row">
+        <div><label>Time</label><input type="time" id="b2-time"></div>
+        <div><label>Post / station</label><input type="text" id="b2-post" placeholder="e.g. Lobby"></div>
+      </div>
+      <button type="button" class="signoff-btn" id="b2-btn" onclick="confirmBlock('b2')">Confirm Block 2 sign-off</button>
+      <div class="signoff-stamp" id="b2-stamp"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BLOCK 3 — AFTERNOON ROUND + SECURITY SIGN-OFF ═══ -->
+<div class="section">
+  <div class="section-label">Block 3 — Afternoon round <span class="tag tag-info">1:00–5:00 PM</span></div>
+  <div class="card">
+    <div class="loc-block" style="border-bottom:none">
+      <div class="loc-hdr" onclick="toggleLoc('afternoon')">
+        <div class="loc-dot" style="background:#8e44ad"></div>
+        <div style="flex:1"><div class="loc-name">All locations — re-check</div><div class="loc-sub">Second pass · Main Garage · Surface Lot · North Lot</div></div>
+        <div class="loc-arrow" id="arr-afternoon">›</div>
+      </div>
+      <div class="loc-body" id="loc-afternoon">
+        <div class="check-list">
+          <div class="ci" data-id="pm-1" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Main Garage — lanes re-checked, debris cleared, gates operational</span></div>
+          <div class="ci" data-id="pm-2" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Surface Lot — kiosks re-checked, lanes clear, access confirmed</span></div>
+          <div class="ci" data-id="pm-3" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">North Lot — full walk, no new issues</span></div>
+          <div class="ci warn" data-id="pm-4" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">Reserved spaces — PM enforcement check, violations documented</span></div>
+          <div class="ci warn" data-id="pm-5" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><div class="ci-dot"></div><span class="ci-text">Nesting / loitering — final sweep, actioned if found</span></div>
+          <div class="ci" data-id="pm-6" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">All areas confirmed clear and clean at close</span></div>
+        </div>
+        <div class="loc-notes-label">Notes</div>
+        <textarea class="loc-ta" id="notes-afternoon" name="notes_afternoon" placeholder="Afternoon observations, any issues found on re-check..."></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BLOCK 3 SECURITY SIGN-OFF -->
+<div class="section">
+  <div class="section-label">Block 3 security sign-off <span class="tag tag-sec">After afternoon round</span></div>
+  <div class="signoff-card green">
+    <div class="signoff-hdr green">
+      <div><div class="signoff-title">Afternoon round verified</div><div class="signoff-sub">Security confirms Block 3 tasks completed</div></div>
+    </div>
+    <div class="signoff-body">
+      <div class="signoff-row">
+        <div><label>Officer name</label><input type="text" id="b3-officer" placeholder="Full name"></div>
+        <div><label>Designation</label><input type="text" id="b3-badge" placeholder="e.g. Security Officer"></div>
+      </div>
+      <div class="signoff-row">
+        <div><label>Time</label><input type="time" id="b3-time"></div>
+        <div><label>Post / station</label><input type="text" id="b3-post" placeholder="e.g. Lobby"></div>
+      </div>
+      <button type="button" class="signoff-btn" id="b3-btn" onclick="confirmBlock('b3')">Confirm Block 3 sign-off</button>
+      <div class="signoff-stamp" id="b3-stamp"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PHOTO EVIDENCE ═══ -->
+<div class="section">
+  <div class="section-label">Photo evidence <span class="tag tag-red">Required</span></div>
+  <div class="card">
+    <div class="drive-block">
+      <div class="drive-hint"><strong>Upload photos here:</strong> Use the shared Google Photos album for all shift photos — cleaning, lanes, enforcement, walkthroughs. Add photos throughout the day as you go.</div>
+      <div class="drive-label">Shared Google Photos album</div>
+      <div style="padding:10px 0 4px">
+        <a href="https://photos.google.com/share/AF1QipP2B9jqrVHb3bgpQFDZxImwh8OamlxfLijVAjHyhyTKW9BbgVamRaGFXqk5--BReQ?key=V1hBckF4QkFPeFdGQTBNbXZhR082YW5tNWhxUjV3" target="_blank" style="display:flex;align-items:center;gap:8px;padding:12px 13px;background:var(--info-bg);border:1.5px solid var(--info-border);border-radius:10px;color:var(--info);font-size:14px;font-weight:600;text-decoration:none">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="16" height="12" rx="2"/><circle cx="10" cy="11" r="3"/><path d="M7 5l1-2h4l1 2"/></svg>
+          Open shared Google Photos album ↗
+        </a>
+      </div>
+    </div>
+    <div class="drive-block">
+      <div class="drive-label">Photo types uploaded today <span class="tag tag-info" style="margin-left:4px">Select all that apply</span></div>
+      <div class="check-list" style="margin-top:8px">
+        <div class="ci" data-id="photo-1" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Gates &amp; kiosks — before/after cleaning</span></div>
+        <div class="ci" data-id="photo-2" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Physical lanes — portering evidence</span></div>
+        <div class="ci" data-id="photo-3" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Trash/debris — before/after clearing</span></div>
+        <div class="ci" data-id="photo-4" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Reserved space violations</span></div>
+        <div class="ci" data-id="photo-5" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">Nesting / loitering evidence</span></div>
+        <div class="ci" data-id="photo-6" onclick="toggleCheck(this)"><div class="ci-box"><div class="ci-tick"></div></div><span class="ci-text">General walkthrough documentation</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EOD SUMMARY ═══ -->
+<div class="section">
+  <div class="section-label">End of shift summary <span class="tag tag-info">Required</span></div>
+  <div class="card">
+    <div class="field"><label>Enforcement actions taken today</label><textarea id="ta-enforcement" name="enforcement_actions" placeholder="Violations issued, items removed, loitering actioned... or write 'None'"></textarea></div>
+    <div class="field"><label>Tenant interactions</label><textarea id="ta-tenant" name="tenant_interactions" placeholder="Any tenant complaints, requests, or conversations... or write 'None'"></textarea></div>
+    <div class="field"><label>Cleanliness notes</label><textarea id="ta-clean" name="cleanliness_notes" placeholder="Debris level per location, anything needing follow-up..."></textarea></div>
+    <div class="field-2col">
+      <div class="field"><label>All callboxes tested?</label><select id="sel-callbox" name="callbox_status" onchange="autoSave()"><option>Yes — all working</option><option>Yes — fault found</option><option>Not tested</option></select></div>
+      <div class="field"><label>All clear at close?</label><select id="sel-allclear" name="all_clear" onchange="autoSave()"><option>Yes — all clear</option><option>Some outstanding</option><option>No — needs AM</option></select></div>
+    </div>
+    <div class="field"><label>Incidents / issues</label><textarea id="ta-incidents" name="incidents" placeholder="Gate faults, safety concerns, anything unusual... or write 'No incidents'"></textarea></div>
+    <div class="field"><label>Handover notes for AM / next shift</label><textarea id="ta-handover" name="handover_notes" placeholder="Anything the AM or next attendant needs to know..."></textarea></div>
+  </div>
+</div>
+
+<!-- ═══ ATTENDANT SIGN-OFF (name only) ═══ -->
+<div class="section">
+  <div class="section-label">Attendant sign-off <span class="tag tag-red">Required to submit</span></div>
+  <div class="card">
+    <div class="field">
+      <label>Attendant full name — confirms this report is accurate</label>
+      <input type="text" id="att-signoff-name" name="attendant_signoff_name" placeholder="Type your full name to confirm">
+    </div>
+    <div class="field">
+      <label>Time submitted</label>
+      <input type="time" id="att-signoff-time" name="attendant_signoff_time">
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SECURITY EOD CHECKOUT ═══ -->
+<div class="section">
+  <div class="section-label">Security checkout <span class="tag tag-sec">End of shift · 5 PM</span></div>
+  <div class="signoff-card green">
+    <div class="signoff-hdr green">
+      <div><div class="signoff-title">End of day — property verified</div><div class="signoff-sub">Security officer reviews and confirms EOD conditions</div></div>
+    </div>
+    <div class="signoff-body">
+      <div class="signoff-row">
+        <div><label>Officer name</label><input type="text" id="co-officer" placeholder="Full name"></div>
+        <div><label>Designation</label><input type="text" id="co-badge" placeholder="e.g. Security Officer"></div>
+      </div>
+      <div class="signoff-row">
+        <div><label>Time confirmed</label><input type="time" id="co-time"></div>
+        <div><label>Post / station</label><input type="text" id="co-post" placeholder="e.g. Lobby"></div>
+      </div>
+      <div class="signoff-notes-wrap">
+        <label>Security observations — what you verified at close</label>
+        <textarea id="co-notes" placeholder="Note what you checked, any discrepancies, concerns, or confirmation that everything looks good..."></textarea>
+      </div>
+      <button type="button" class="signoff-btn" id="co-btn" onclick="confirmBlock('co')">Confirm EOD checkout</button>
+      <div class="signoff-stamp" id="co-stamp"></div>
+    </div>
+  </div>
+</div>
+
+<div class="readiness">
+  <div class="ri no" id="ri-name"><div class="ri-label">Name</div><div class="ri-val" id="ri-name-val">Missing</div></div>
+  <div class="ri no" id="ri-checkin"><div class="ri-label">Check-in</div><div class="ri-val" id="ri-checkin-val">Pending</div></div>
+  <div class="ri no" id="ri-checkout"><div class="ri-label">Checkout</div><div class="ri-val" id="ri-checkout-val">Pending</div></div>
+</div>
+
+<div class="submit-wrap">
+  <button type="submit" class="submit-btn" id="submit-btn">Submit Daily Report</button>
+</div>
+<div class="footer">Vend × Spark Services &nbsp;·&nbsp; One Arts Plaza &nbsp;·&nbsp; M-F 9AM–5PM Central</div>
+</form>
+
+<script>
+const SAVE_KEY = 'onearts_daily_v1';
+const BACKUP_KEY = 'onearts_daily_v1_backup';
+let saveTimer = null;
+let periodicTimer = null;
+let attConfirmed = false, secConfirmed = false, checkinDone = false;
+let deferredInstallPrompt = null;
+
+// ── Clock ──
+function tick(){document.getElementById('live-clock').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+tick();setInterval(tick,30000);
+
+// ── Save UI states ──
+function markUnsaved(){
+  const b=document.getElementById('save-banner');
+  const d=document.getElementById('save-dot');
+  const l=document.getElementById('save-main-label');
+  b.classList.add('unsaved');b.classList.remove('saving');
+  d.classList.add('unsaved');d.classList.remove('saving');
+  l.textContent='Unsaved changes';
+}
+function markSaving(){
+  const b=document.getElementById('save-banner');
+  const d=document.getElementById('save-dot');
+  const l=document.getElementById('save-main-label');
+  b.classList.remove('unsaved');b.classList.add('saving');
+  d.classList.remove('unsaved');d.classList.add('saving');
+  l.textContent='Saving...';
+}
+function markSaved(ts){
+  const b=document.getElementById('save-banner');
+  const d=document.getElementById('save-dot');
+  const l=document.getElementById('save-main-label');
+  b.classList.remove('unsaved','saving');
+  d.classList.remove('unsaved','saving');
+  l.textContent='Progress saved';
+  const t=ts?new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('save-time').textContent='Last saved at '+t;
+  // Flash green
+  b.classList.remove('flash');
+  void b.offsetWidth;
+  b.classList.add('flash');
+}
+
+// ── Auto-save trigger ──
+function autoSave(){
+  markUnsaved();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveAll,800);
+}
+
+// ── Periodic save every 2 minutes ──
+function startPeriodicSave(){
+  clearInterval(periodicTimer);
+  periodicTimer=setInterval(()=>{
+    saveAll(true); // silent periodic save
+  },120000);
+}
+
+// ── Collect current form state ──
+function collectData(){
+  const data={
+    attName:document.getElementById('att-name').value,
+    attDate:document.getElementById('att-date').value,
+    selOps:document.getElementById('sel-ops').value,
+    selClean:document.getElementById('sel-clean').value,
+    selEnforce:document.getElementById('sel-enforce').value,
+    lc1:document.getElementById('lc1').value,
+    laneNotes:document.getElementById('lane-notes').value,
+    notesBasement:document.getElementById('notes-basement').value,
+    notesMain:document.getElementById('notes-main').value,
+    notesSurface:document.getElementById('notes-surface').value,
+    notesNorth:document.getElementById('notes-north').value,
+    notesAfternoon:(document.getElementById('notes-afternoon')||{}).value||'',
+    attSignoffName:(document.getElementById('att-signoff-name')||{}).value||'',
+    taEnforce:document.getElementById('ta-enforcement').value,
+    taTenant:document.getElementById('ta-tenant').value,
+    taClean:document.getElementById('ta-clean').value,
+    taIncidents:document.getElementById('ta-incidents').value,
+    taHandover:document.getElementById('ta-handover').value,
+    selCallbox:document.getElementById('sel-callbox').value,
+    selAllClear:document.getElementById('sel-allclear').value,
+    checks:{},
+    openLocs:[],
+    savedAt:new Date().toISOString()
+  };
+  // Save block sign-off states
+  ['ci','b1','b2','b3','co'].forEach(bid=>{
+    data['block_'+bid]=blockState[bid];
+    ['officer','badge','time','post'].forEach(f=>{const el=document.getElementById(bid+'-'+f);if(el)data[bid+'_'+f]=el.value;});
+    const notesEl=document.getElementById(bid+'-notes');if(notesEl)data[bid+'_notes']=notesEl.value;
+    const stamp=document.getElementById(bid+'-stamp');if(stamp)data['stamp_'+bid]=stamp.textContent;
+  });
+  document.querySelectorAll('.ci[data-id]').forEach(el=>{data.checks[el.dataset.id]=el.classList.contains('done');});
+  ['basement','main','surface','north','afternoon'].forEach(id=>{const b=document.getElementById('loc-'+id);if(b&&b.classList.contains('open'))data.openLocs.push(id);});
+  return data;
+}
+
+// ── Save ──
+function saveAll(silent){
+  try{
+    markSaving();
+    const data=collectData();
+    const json=JSON.stringify(data);
+    localStorage.setItem(SAVE_KEY,json);
+    // Also write backup copy
+    localStorage.setItem(BACKUP_KEY,json);
+    if(!silent)markSaved(data.savedAt);
+    else markSaved(data.savedAt);
+    // Hide restore pill since main save is fresh
+    document.getElementById('pill-restore').classList.remove('show');
+  }catch(e){
+    console.warn('Save failed',e);
+    const l=document.getElementById('save-main-label');
+    l.textContent='Save failed — copy backup now';
+    document.getElementById('save-banner').classList.add('unsaved');
+  }
+}
+
+// ── Load ──
+function loadSaved(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    const backupRaw=localStorage.getItem(BACKUP_KEY);
+    if(!raw){
+      // No main save — check if backup exists
+      if(backupRaw){
+        const bd=JSON.parse(backupRaw);
+        const today=getTodayStr();
+        if(bd.attDate===today){
+          document.getElementById('pill-restore').classList.add('show');
+        }
+      }
+      setDefaults();return;
+    }
+    const d=JSON.parse(raw);
+    const today=getTodayStr();
+    if(d.attDate&&d.attDate!==today){setDefaults();return;}
+    applyData(d);
+    markSaved(d.savedAt);
+  }catch(e){console.warn('Load failed',e);setDefaults();}
+}
+
+function restoreBackup(){
+  try{
+    const raw=localStorage.getItem(BACKUP_KEY);
+    if(!raw){alert('No backup found.');return;}
+    const d=JSON.parse(raw);
+    applyData(d);
+    localStorage.setItem(SAVE_KEY,raw);
+    document.getElementById('pill-restore').classList.remove('show');
+    markSaved(d.savedAt);
+    showToast('Backup restored ✓');
+  }catch(e){alert('Could not restore backup.');}
+}
+
+function applyData(d){
+  if(d.attName)document.getElementById('att-name').value=d.attName;
+  if(d.attDate)document.getElementById('att-date').value=d.attDate;
+  if(d.selOps){document.getElementById('sel-ops').value=d.selOps;styleSelect(document.getElementById('sel-ops'));}
+  if(d.selClean){document.getElementById('sel-clean').value=d.selClean;styleSelect(document.getElementById('sel-clean'));}
+  if(d.selEnforce){document.getElementById('sel-enforce').value=d.selEnforce;styleSelect(document.getElementById('sel-enforce'));}
+  if(d.lc1){document.getElementById('lc1').value=d.lc1;styleLane(document.getElementById('lc1'));}
+  if(d.laneNotes)document.getElementById('lane-notes').value=d.laneNotes;
+  if(d.notesBasement)document.getElementById('notes-basement').value=d.notesBasement;
+  if(d.notesMain)document.getElementById('notes-main').value=d.notesMain;
+  if(d.notesSurface)document.getElementById('notes-surface').value=d.notesSurface;
+  if(d.notesNorth)document.getElementById('notes-north').value=d.notesNorth;
+  if(d.notesAfternoon)document.getElementById('notes-afternoon').value=d.notesAfternoon;
+  if(d.attSignoffName)document.getElementById('att-signoff-name').value=d.attSignoffName;
+  if(d.taEnforce)document.getElementById('ta-enforcement').value=d.taEnforce;
+  if(d.taTenant)document.getElementById('ta-tenant').value=d.taTenant;
+  if(d.taClean)document.getElementById('ta-clean').value=d.taClean;
+  if(d.taIncidents)document.getElementById('ta-incidents').value=d.taIncidents;
+  if(d.taHandover)document.getElementById('ta-handover').value=d.taHandover;
+  if(d.selCallbox)document.getElementById('sel-callbox').value=d.selCallbox;
+  if(d.selAllClear)document.getElementById('sel-allclear').value=d.selAllClear;
+  if(d.checks){Object.entries(d.checks).forEach(([id,done])=>{const el=document.querySelector('.ci[data-id="'+id+'"]');if(el&&done)el.classList.add('done');});}
+  if(d.openLocs){d.openLocs.forEach(id=>{const b=document.getElementById('loc-'+id),a=document.getElementById('arr-'+id);if(b)b.classList.add('open');if(a)a.classList.add('open');});}
+  // Restore block sign-offs
+  ['ci','b1','b2','b3','co'].forEach(bid=>{
+    const stampKey='stamp_'+bid;
+    const stateKey='block_'+bid;
+    if(d[stateKey]){
+      blockState[bid]=true;
+      const btn=document.getElementById(bid+'-btn');
+      if(btn){const labels={ci:'Check-in confirmed',b1:'Block 1 signed off',b2:'Block 2 signed off',b3:'Block 3 signed off',co:'Checkout confirmed'};btn.classList.add('confirmed');btn.textContent=(labels[bid]||'Confirmed')+' ✓';}
+      // Restore officer/badge/time/post fields
+      ['officer','badge','time','post'].forEach(f=>{if(d[bid+'_'+f]){const el=document.getElementById(bid+'-'+f);if(el)el.value=d[bid+'_'+f];}});
+      if(d[bid+'_notes']){const el=document.getElementById(bid+'-notes');if(el)el.value=d[bid+'_notes'];}
+      if(d[stampKey]){const s=document.getElementById(bid+'-stamp');if(s){s.classList.add('show');s.textContent=d[stampKey];}}
+      const fieldMap={ci:'f-checkin',b1:'f-block1',b2:'f-block2',b3:'f-block3',co:'f-checkout'};
+      const hf=document.getElementById(fieldMap[bid]);if(hf&&d[stampKey])hf.value=d[stampKey];
+    }
+  });
+  updateReadiness();
+}
+
+// ── Copy progress as plain text (fallback backup) ──
+function copyProgress(){
+  try{
+    const d=collectData();
+    const checks=Object.entries(d.checks).filter(([,v])=>v).map(([k])=>k).join(', ');
+    const text=[
+      'ONE ARTS PLAZA — DAILY REPORT BACKUP',
+      'Saved: '+new Date(d.savedAt||Date.now()).toLocaleString(),
+      '---',
+      'Attendant: '+(d.attName||'—'),
+      'Date: '+(d.attDate||'—'),
+      'Operations: '+d.selOps,
+      'Cleanliness: '+d.selClean,
+      'Enforcement: '+d.selEnforce,
+      '---',
+      'Lane 8280 check 1: '+(d.lc1||'Not entered'),
+      'Lane 8280 check 2: '+(d.lc2||'Not entered'),
+      'Lane notes: '+(d.laneNotes||'—'),
+      '---',
+      'Basement notes: '+(d.notesBasement||'—'),
+      'Main Garage notes: '+(d.notesMain||'—'),
+      'Surface Lot notes: '+(d.notesSurface||'—'),
+      'North Lot notes: '+(d.notesNorth||'—'),
+      '---',
+      'Drive link: '+(d.driveLink||'—'),
+      'Enforcement actions: '+(d.taEnforce||'—'),
+      'Tenant interactions: '+(d.taTenant||'—'),
+      'Cleanliness notes: '+(d.taClean||'—'),
+      'Incidents: '+(d.taIncidents||'—'),
+      'Handover: '+(d.taHandover||'—'),
+      'Callboxes: '+d.selCallbox,
+      'All clear: '+d.selAllClear,
+      '---',
+      'Check-in: '+(d.ciStamp||'Not completed'),
+      'Midday: '+(d.mdStamp||'Not completed'),
+      'Tasks done: '+checks,
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(()=>showToast('Progress copied to clipboard ✓')).catch(()=>{
+      // Fallback for older mobile browsers
+      const ta=document.createElement('textarea');
+      ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();document.execCommand('copy');
+      document.body.removeChild(ta);showToast('Progress copied ✓');
+    });
+  }catch(e){showToast('Could not copy — try again');}
+}
+
+// ── Toast ──
+function showToast(msg){
+  const t=document.getElementById('copy-toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── Helpers ──
+function getTodayStr(){
+  const t=new Date(),y=t.getFullYear(),m=String(t.getMonth()+1).padStart(2,'0'),d=String(t.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
+}
+
+function setDefaults(){
+  document.getElementById('att-date').value=getTodayStr();
+  const t=new Date(),hh=String(t.getHours()).padStart(2,'0'),mm=String(t.getMinutes()).padStart(2,'0');
+  const timeStr=hh+':'+mm;
+  ['ci-time','b1-time','b2-time','b3-time','co-time','att-signoff-time'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=timeStr;});
+  const badge=document.getElementById('checkin-time-badge');
+  if(badge)badge.textContent=t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('save-time').textContent='No saved data for today';
+}
+
+function clearSavedData(){
+  if(!confirm('Start a new day? This will clear all saved progress.'))return;
+  localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(BACKUP_KEY);
+  location.reload();
+}
+
+// ── Offline detection ──
+function updateOnlineStatus(){
+  const pill=document.getElementById('pill-offline');
+  if(!navigator.onLine)pill.classList.add('show');
+  else pill.classList.remove('show');
+}
+window.addEventListener('online',updateOnlineStatus);
+window.addEventListener('offline',updateOnlineStatus);
+
+// ── Battery detection ──
+async function checkBattery(){
+  try{
+    if(!navigator.getBattery)return;
+    const battery=await navigator.getBattery();
+    function update(){
+      const pill=document.getElementById('pill-battery');
+      if(!battery.charging&&battery.level<0.2)pill.classList.add('show');
+      else pill.classList.remove('show');
+    }
+    update();
+    battery.addEventListener('levelchange',update);
+    battery.addEventListener('chargingchange',update);
+  }catch(e){}
+}
+
+// ── Page visibility — save when app goes to background ──
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)saveAll(true);
+});
+
+// ── PWA install prompt ──
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  document.getElementById('pill-install').classList.add('show');
+});
+function installPrompt(){
+  if(deferredInstallPrompt){
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(()=>{
+      deferredInstallPrompt=null;
+      document.getElementById('pill-install').classList.remove('show');
+    });
+  } else {
+    showToast('Open in browser → Share → Add to Home Screen');
+  }
+}
+
+// ── Bind inputs to autoSave ──
+function bindAutoSave(){
+  const ids=['att-name','att-date','lane-notes','notes-basement','notes-main','notes-surface','notes-north','att-signoff-name','ta-enforcement','ta-tenant','ta-clean','ta-incidents','ta-handover','ci-officer','ci-badge','ci-time','ci-post','b1-officer','b1-badge','b1-time','b1-post','b2-officer','b2-badge','b2-time','b2-post','b3-officer','b3-badge','b3-time','b3-post','co-officer','co-badge','co-time','co-post','co-notes'];
+  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',autoSave);});
+}
+
+// ── Checklist ──
+function toggleCheck(el){el.classList.toggle('done');autoSave();updateReadiness();}
+
+// ── Location accordion ──
+function toggleLoc(id){
+  const b=document.getElementById('loc-'+id),a=document.getElementById('arr-'+id);
+  if(b)b.classList.toggle('open');
+  if(a)a.classList.toggle('open');
+  autoSave();
+}
+
+// ── Status selects ──
+function styleSelect(s){
+  s.className='ssel';
+  const v=s.value;
+  if(v==='Smooth'||v==='Maintained'||v==='Low')s.classList.add('ok');
+  else if(v==='Minor issues'||v==='Needs attention'||v==='Moderate')s.classList.add('warn');
+  else s.classList.add('bad');
+}
+function styleLane(s){
+  s.className='lane-sel';
+  if(s.value==='All OK')s.classList.add('ok-sel');
+  else if(s.value&&s.value!=='')s.classList.add('warn-sel');
+}
+
+// ── Unified block sign-off ──
+const blockState={ci:false,b1:false,b2:false,b3:false,co:false};
+function confirmBlock(id){
+  const officer=(document.getElementById(id+'-officer')||{}).value||'Security officer';
+  const badge=(document.getElementById(id+'-badge')||{}).value||'';
+  const time=(document.getElementById(id+'-time')||{}).value||new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const post=(document.getElementById(id+'-post')||{}).value||'';
+  const notes=(document.getElementById(id+'-notes')||{}).value||'';
+  blockState[id]=true;
+  const btn=document.getElementById(id+'-btn');
+  const labels={ci:'Check-in confirmed',b1:'Block 1 signed off',b2:'Block 2 signed off',b3:'Block 3 signed off',co:'Checkout confirmed'};
+  btn.classList.add('confirmed');
+  btn.textContent=(labels[id]||'Confirmed')+' ✓';
+  let stampText=officer+(badge?' · '+badge:'')+(post?' · '+post:'')+' · '+time;
+  if(notes)stampText+='\nNotes: '+notes;
+  const stamp=document.getElementById(id+'-stamp');
+  stamp.classList.add('show');stamp.textContent=stampText;
+  const fieldMap={ci:'f-checkin',b1:'f-block1',b2:'f-block2',b3:'f-block3',co:'f-checkout'};
+  const hf=document.getElementById(fieldMap[id]);
+  if(hf)hf.value=stampText;
+  autoSave();updateReadiness();
+}
+
+// ── Readiness ──
+function updateReadiness(){
+  const name=document.getElementById('att-name').value.trim();
+  document.getElementById('ri-name').className='ri '+(name?'ok':'no');
+  document.getElementById('ri-name-val').textContent=name?name.split(' ')[0]:'Missing';
+  document.getElementById('ri-checkin').className='ri '+(blockState.ci?'ok':'no');
+  document.getElementById('ri-checkin-val').textContent=blockState.ci?'Done':'Pending';
+  document.getElementById('ri-checkout').className='ri '+(blockState.co?'ok':'no');
+  document.getElementById('ri-checkout-val').textContent=blockState.co?'Done':'Pending';
+}
+
+// ── Submit via EmailJS ──
+function handleSubmit(e){
+  e.preventDefault();
+  const name=document.getElementById('att-name').value.trim();
+  const signoff=document.getElementById('att-signoff-name').value.trim();
+  if(!name){alert('Please enter the attendant name at the top.');return;}
+  if(!signoff){alert('Please type your full name in the Attendant Sign-Off section to confirm the report.');return;}
+
+  const st=document.getElementById('att-signoff-time');
+  if(!st.value){const n=new Date();st.value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
+
+  const btn=document.getElementById('submit-btn');
+  btn.textContent='Sending...';
+  btn.disabled=true;
+
+  // Build full report text for {{report}} template variable
+  const checks=Array.from(document.querySelectorAll('.ci[data-id].done')).map(el=>el.querySelector('.ci-text').textContent.trim());
+  const date=document.getElementById('att-date').value;
+  const report=[
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    'ONE ARTS PLAZA — DAILY OPERATIONS REPORT',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    'Attendant: '+name,
+    'Date: '+date,
+    'Submitted: '+new Date().toLocaleString(),
+    '',
+    '── OVERALL STATUS ──',
+    'Operations: '+document.getElementById('sel-ops').value,
+    'Cleanliness: '+document.getElementById('sel-clean').value,
+    'Enforcement: '+document.getElementById('sel-enforce').value,
+    '',
+    '── LANE 8280 ──',
+    'Morning check: '+(document.getElementById('lc1').value||'Not entered'),
+    'Notes: '+(document.getElementById('lane-notes').value||'None'),
+    '',
+    '── SECURITY CHECK-IN ──',
+    document.getElementById('ci-stamp').textContent||'Not completed',
+    '',
+    '── BLOCK 1 SIGN-OFF ──',
+    document.getElementById('b1-stamp').textContent||'Not completed',
+    '',
+    '── BLOCK 2 SIGN-OFF ──',
+    document.getElementById('b2-stamp').textContent||'Not completed',
+    '',
+    '── BLOCK 3 SIGN-OFF ──',
+    document.getElementById('b3-stamp').textContent||'Not completed',
+    '',
+    '── LOCATION NOTES ──',
+    'Basement Garage: '+(document.getElementById('notes-basement').value||'None'),
+    'Main Garage: '+(document.getElementById('notes-main').value||'None'),
+    'Surface Lot: '+(document.getElementById('notes-surface').value||'None'),
+    'North Lot: '+(document.getElementById('notes-north').value||'None'),
+    'Afternoon re-check: '+((document.getElementById('notes-afternoon')||{}).value||'None'),
+    '',
+    '── TASKS COMPLETED ──',
+    checks.length?checks.map(t=>'✓ '+t).join('\n'):'None checked',
+    '',
+    '── EOD SUMMARY ──',
+    'Enforcement actions: '+(document.getElementById('ta-enforcement').value||'None'),
+    'Tenant interactions: '+(document.getElementById('ta-tenant').value||'None'),
+    'Cleanliness notes: '+(document.getElementById('ta-clean').value||'None'),
+    'Callboxes: '+document.getElementById('sel-callbox').value,
+    'All clear: '+document.getElementById('sel-allclear').value,
+    'Incidents: '+(document.getElementById('ta-incidents').value||'None'),
+    'Handover notes: '+(document.getElementById('ta-handover').value||'None'),
+    '',
+    '── SECURITY EOD CHECKOUT ──',
+    document.getElementById('co-stamp').textContent||'Not completed',
+    '',
+    '── ATTENDANT SIGN-OFF ──',
+    'Confirmed by: '+signoff+' at '+st.value,
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+  ].join('\n');
+
+  emailjs.send('service_vifgwqk','template_9y4eti8',{
+    report: report,
+    attendant_name: name,
+    report_date: date,
+  }).then(()=>{
+    btn.textContent='Submitted ✓';
+    btn.classList.add('submitted');
+    btn.disabled=false;
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(BACKUP_KEY);
+    showToast('Report sent successfully ✓');
+  }).catch(err=>{
+    console.error('EmailJS error:',err);
+    btn.textContent='Submit Daily Report';
+    btn.disabled=false;
+    alert('Could not send report. Please tap "Copy backup" and send it to your AM manually. Error: '+JSON.stringify(err));
+  });
+}
+
+// ── Init ──
+window.addEventListener('load',()=>{
+  emailjs.init('6Sx1ao4m9vPpeBUZq');
+  loadSaved();
+  setDefaults();
+  bindAutoSave();
+  updateReadiness();
+  updateOnlineStatus();
+  checkBattery();
+  startPeriodicSave();
+});
+</script>
+</body>
+</html>
